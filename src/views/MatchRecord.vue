@@ -25,21 +25,39 @@
           <div class="status-action">
             <el-tag v-if="record.status === 1" type="success" effect="dark">已确认认领</el-tag>
             <el-tag v-else-if="record.status === 2" type="info" effect="dark">已否决</el-tag>
-            <el-button 
-              v-if="record.status === 0" 
-              type="primary" 
-              @click="handleConfirm(record.recordId)"
-            >
-              <el-icon><Check /></el-icon> 确认是我的
-            </el-button>
+            
+            <template v-else-if="record.status === 0">
+              
+              <el-button 
+                v-if="record.lostItem.userId == currentUserId" 
+                type="primary" 
+                @click="handleConfirm(record.recordId)"
+              >
+                <el-icon><Check /></el-icon> 确认是我的
+              </el-button>
+              
+              <el-button 
+                v-else
+                type="info" 
+                plain
+                disabled
+              >
+                <el-icon><Clock /></el-icon> 等待失主确认
+              </el-button>
+
+            </template>
           </div>
         </div>
 
         <el-divider border-style="dashed" />
 
         <el-row :gutter="40" class="compare-area">
+          
           <el-col :span="11" class="item-col">
-            <div class="col-title lost-title">🔴 我丢失的物品</div>
+            <div class="col-title lost-title">
+              {{ record.lostItem.userId == currentUserId ? '🔴 我丢失的物品' : '🔴 别人丢失的物品' }}
+            </div>
+            
             <div class="item-content">
               <el-image 
                 v-if="record.lostItem.imageUrl" 
@@ -63,7 +81,10 @@
           </el-col>
 
           <el-col :span="11" class="item-col">
-            <div class="col-title found-title">🟢 别人捡到的物品</div>
+            <div class="col-title found-title">
+              {{ record.foundItem.userId == currentUserId ? '🟢 我捡到的物品' : '🟢 别人捡到的物品' }}
+            </div>
+            
             <div class="item-content">
               <el-image 
                 v-if="record.foundItem.imageUrl" 
@@ -81,6 +102,7 @@
               </div>
             </div>
           </el-col>
+          
         </el-row>
 
       </el-card>
@@ -95,6 +117,20 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 const loading = ref(false)
 const matchList = ref([])
+
+// 🌟 解析 Token 获取当前用户的真实 ID
+const getCurrentUserId = () => {
+  const token = localStorage.getItem('token')
+  if (!token) return null
+  try {
+    // JWT 格式是三段式，中间那段是数据 payload。我们用 atob 解码 Base64
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.sub // 后端把 userId 存在了 subject (sub) 里
+  } catch (e) {
+    return null
+  }
+}
+const currentUserId = ref(getCurrentUserId())
 
 // 进度条颜色渐变：分数越高越绿
 const customColors = [

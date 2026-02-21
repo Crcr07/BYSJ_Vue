@@ -6,11 +6,11 @@ const request = axios.create({
   timeout: 10000   // 请求超时时间 10 秒
 })
 
-// 请求拦截器 (每次发请求前，偷偷在这里塞入 Token)
+// ================= 请求拦截器 =================
 request.interceptors.request.use(
   config => {
-    // 假设我们登录后把 token 存在了浏览器的 localStorage 里
-    const token = localStorage.getItem('token')
+    // ✅ 修复三：从 sessionStorage 里取 Token
+    const token = sessionStorage.getItem('token')
     if (token) {
       config.headers['token'] = token
     }
@@ -19,9 +19,9 @@ request.interceptors.request.use(
   error => {
     return Promise.reject(error)
   }
-)
+) // 🌟 就是这里！之前少了这一对括号，导致语法解析直接崩溃！
 
-// 响应拦截器 (处理后端返回的 Result 对象)
+// ================= 响应拦截器 =================
 request.interceptors.response.use(
   response => {
     let res = response.data
@@ -30,7 +30,8 @@ request.interceptors.response.use(
       console.error('请求失败:', res.message)
       // 如果 code 是 401，说明没登录或者 token 过期
       if (res.code === 401) {
-        // TODO: 跳回登录页
+        // 发现未登录，自动清理 sessionStorage
+        sessionStorage.removeItem('token') 
       }
       return Promise.reject(new Error(res.message || 'Error'))
     }

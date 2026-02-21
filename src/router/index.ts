@@ -24,6 +24,22 @@ const router = createRouter({
           path: 'match',
           name: 'MatchRecord',
           component: () => import('../views/MatchRecord.vue')
+        },
+        // 发布页面路由
+        {
+          path: 'publish',
+          name: 'Publish',
+          component: () => import('../views/Publish.vue')
+        },
+        {
+      path: '/login',
+      name: 'Login',
+      component: () => import('../views/Login.vue')
+        },// ... 前面有 lost, found, publish, match
+        {
+          path: 'profile',
+          name: 'Profile',
+          component: () => import('../views/Profile.vue')
         }
       ]
     }
