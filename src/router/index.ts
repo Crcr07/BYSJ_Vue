@@ -40,7 +40,19 @@ const router = createRouter({
           path: 'profile',
           name: 'Profile',
           component: () => import('../views/Profile.vue')
-        }
+        },
+        // 🌟 新增：信用中心页面路由
+      {
+        path: '/credit',
+        name: 'Credit',
+        component: () => import('@/views/Credit.vue')
+      },
+      // 🌟 新增：消息中心路由
+      {
+        path: '/message',
+        name: 'Message',
+        component: () => import('@/views/Message.vue')
+      }
       ]
     }
   ]

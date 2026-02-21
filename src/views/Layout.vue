@@ -33,12 +33,24 @@
           <el-icon><Connection /></el-icon>
           <span>我的智能匹配 ✨</span>
         </el-menu-item>
+
+        <el-menu-item index="/credit">
+          <el-icon><Trophy /></el-icon>
+          <span style="font-weight: bold; color: #E6A23C;">我的信用中心 🛡️</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
     <el-container>
       <el-header class="main-header">
         <div class="header-right">
+          
+          <div class="bell-container" @click="goToMessageCenter">
+            <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="item">
+              <el-icon :size="24" color="#606266"><Bell /></el-icon>
+            </el-badge>
+          </div>
+
           <el-dropdown>
             <span class="el-dropdown-link user-info">
               <el-avatar 
@@ -55,7 +67,7 @@
                 effect="dark"
               >
                 <el-icon :size="16" style="margin-right: 5px;"><Star /></el-icon>
-                <span>信用分: {{ userInfo.creditScore }}</span>
+                <span>信用分: {{ userInfo.creditScore || 100 }}</span>
               </el-tag>
             </span>
             <template #dropdown>
@@ -84,34 +96,107 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+// 🌟 引入需要的图标
+import { Bell, Box, Search, Goods, EditPen, Connection, Trophy, Star, User } from '@element-plus/icons-vue' 
 
 const route = useRoute()
 const router = useRouter()
 
 // 存储当前登录用户的信息
 const userInfo = ref({})
+// 🌟 存储未读消息数量
+const unreadCount = ref(0) 
+
 // 🌟 动态计算信用分的颜色类型
 const getScoreTagType = (score) => {
   if (!score) return 'info'
-  if (score >= 120) return 'success' // 极佳：绿色 (120分以上)
-  if (score >= 80) return 'primary'  // 良好：蓝色 (80-119分)
-  if (score >= 60) return 'warning'  // 警告：橙色 (60-79分)
-  return 'danger'                    // 危险：红色 (60分以下)
+  if (score >= 120) return 'success'
+  if (score >= 80) return 'primary'
+  if (score >= 60) return 'warning'
+  return 'danger'
 }
+
+// 获取未读消息数量的方法
+const fetchUnreadCount = async () => {
+  try {
+    const res = await request.get('/notice/unread-count', { params: { _t: Date.now() } })
+    if (res !== undefined) {
+      unreadCount.value = res
+    }
+  } catch (error) {
+    console.error('获取未读消息数失败')
+  }
+}
+
+// 跳转到消息中心
+const goToMessageCenter = () => {
+  router.push('/message')
+}
+
+// ================= WebSocket 相关逻辑 =================
+let ws = null
+
+const initWebSocket = (userId) => {
+  if (!userId) return
+
+  if (ws) {
+    ws.close()
+  }
+
+  const wsUrl = `ws://localhost:8080/ws/${userId}`
+  ws = new WebSocket(wsUrl)
+
+  ws.onopen = () => {
+    console.log('🔗 WebSocket 天线已展开，连接成功！')
+  }
+
+  ws.onmessage = (event) => {
+    console.log('💌 收到后端实时消息:', event.data)
+    try {
+      const notice = JSON.parse(event.data)
+      
+      // 🌟 1. 弹出右侧通知
+      ElNotification({
+        title: notice.title || '您有新消息',
+        message: notice.content,
+        type: notice.type === 2 ? 'success' : 'warning',
+        duration: 8000,
+        position: 'top-right'
+      })
+
+      // 🌟 2. 右上角的小红点数字自动 +1
+      unreadCount.value += 1
+
+    } catch (e) {
+      console.error('消息解析失败', e)
+    }
+  }
+
+  ws.onclose = () => {
+    console.log('❌ WebSocket 连接已断开')
+  }
+}
+// ===================================================
+
 // 获取用户信息的方法
 const fetchUserInfo = async () => {
   try {
-    // 🌟 修复一：加入时间戳 _t 参数，强制浏览器不使用缓存！
     const res = await request.get('/user/info', {
       params: { _t: new Date().getTime() }
     })
     if (res) {
       userInfo.value = res
+      
+      // 🌟 用户信息获取成功后，启动 WebSocket 引擎
+      initWebSocket(res.id)
+      
+      // 🌟 登录成功后，主动拉取一次未读消息红点数量
+      fetchUnreadCount() 
     }
   } catch (error) {
     ElMessage.error('登录状态异常，请重新登录')
-    sessionStorage.removeItem('token') // 下面我们会换成 sessionStorage
+    sessionStorage.removeItem('token')
     router.push('/login')
   }
 }
@@ -127,23 +212,22 @@ const handleLogout = () => {
       type: 'warning',
     }
   ).then(() => {
-    // 1. 🌟 核心修复：把所有的本地保险箱彻底清空，不留任何历史痕迹
     localStorage.clear()
     sessionStorage.clear()
     
+    // 退出登录时，掐断 WebSocket 连接
+    if (ws) {
+      ws.close()
+    }
+
     ElMessage.success('已安全退出')
-    
-    // 2. 🌟 核心修复：强制跳转回登录页，彻底销毁当前的组件内存
     setTimeout(() => {
       window.location.href = '/login'
     }, 500)
     
-  }).catch(() => {
-    // 用户点击了取消，不做任何操作
-  })
+  }).catch(() => {})
 }
 
-// 页面一加载，就立刻去后端拉取当前用户信息
 onMounted(() => {
   fetchUserInfo()
 })
@@ -168,6 +252,20 @@ onMounted(() => {
   align-items: center;
   justify-content: flex-end;
   padding: 0 20px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+}
+.bell-container {
+  margin-right: 25px; 
+  cursor: pointer; 
+  display: flex; 
+  align-items: center;
+  height: 100%;
+}
+.bell-container:hover {
+  opacity: 0.8;
 }
 .user-info {
   cursor: pointer;
