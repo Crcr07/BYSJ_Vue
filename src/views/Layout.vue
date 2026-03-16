@@ -33,6 +33,14 @@
           <el-icon><Connection /></el-icon>
           <span>我的智能匹配 ✨</span>
         </el-menu-item>
+        <el-menu-item v-if="userInfo.role === 0" index="/admin/users">
+          <el-icon><UserFilled /></el-icon>
+  <span>用户管理</span>
+</el-menu-item>
+<el-menu-item v-if="userInfo.role === 0" index="/admin/items">
+  <el-icon><Management /></el-icon>
+  <span>物品管理</span>
+</el-menu-item>
 
         <el-menu-item index="/credit">
           <el-icon><Trophy /></el-icon>
@@ -98,7 +106,8 @@ import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 // 🌟 引入需要的图标
-import { Bell, Box, Search, Goods, EditPen, Connection, Trophy, Star, User } from '@element-plus/icons-vue' 
+// import { Bell, Box, Search, Goods, EditPen, Connection, Trophy, Star, User } from '@element-plus/icons-vue' 
+import { Bell, Box, Search, Goods, EditPen, Connection, Trophy, Star, User, UserFilled, Management } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
