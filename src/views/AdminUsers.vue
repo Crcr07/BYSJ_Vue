@@ -19,20 +19,20 @@
         <el-table-column prop="creditScore" label="信用分" width="80" />
         <el-table-column prop="role" label="角色" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.role === 1 ? 'danger' : 'info'">{{ row.role === 1 ? '管理员' : '普通用户' }}</el-tag>
+            <el-tag :type="row.role === 0 ? 'info' : 'danger'">{{ row.role === 0 ? '管理员' : '普通用户' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.status === 0 ? 'success' : 'danger'">{{ row.status === 0 ? '正常' : '禁用' }}</el-tag>
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'">{{ row.status === 1 ? '正常' : '禁用' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="注册时间" width="160" />
         <el-table-column label="操作" fixed="right" min-width="200">
           <template #default="{ row }">
             <el-button size="small" type="primary" plain @click="viewDetail(row)">详情</el-button>
-            <el-button size="small" :type="row.status === 0 ? 'warning' : 'success'" @click="toggleStatus(row)">
-              {{ row.status === 0 ? '禁用' : '启用' }}
+            <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" @click="toggleStatus(row)">
+              {{ row.status === 1 ? '禁用' : '启用' }}
             </el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -62,8 +62,8 @@
         <el-descriptions-item label="真实姓名">{{ currentUser.realName }}</el-descriptions-item>
         <el-descriptions-item label="手机号">{{ currentUser.mobile }}</el-descriptions-item>
         <el-descriptions-item label="信用分">{{ currentUser.creditScore }}</el-descriptions-item>
-        <el-descriptions-item label="角色">{{ currentUser.role === 1 ? '管理员' : '普通用户' }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ currentUser.status === 0 ? '正常' : '禁用' }}</el-descriptions-item>
+        <el-descriptions-item label="角色">{{ currentUser.role === 0 ? '管理员' : '普通用户' }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ currentUser.status === 1 ? '正常' : '禁用' }}</el-descriptions-item>
         <el-descriptions-item label="注册时间">{{ currentUser.createTime }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
@@ -114,8 +114,8 @@ const viewDetail = (row) => {
 }
 
 const toggleStatus = (row) => {
-  const newStatus = row.status === 0 ? 1 : 0
-  const action = newStatus === 0 ? '启用' : '禁用'
+  const newStatus = row.status === 1 ? 0 : 1   // 修正：1→禁用(0)，0→启用(1)
+  const action = newStatus === 0 ? '禁用' : '启用'
   ElMessageBox.confirm(`确定要${action}用户 ${row.nickname || row.username} 吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
