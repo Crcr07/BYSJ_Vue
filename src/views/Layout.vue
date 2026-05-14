@@ -63,7 +63,7 @@
             <span class="el-dropdown-link user-info">
               <el-avatar 
                 :size="32" 
-                :src="userInfo.avatar ? `/api/images/${userInfo.avatar}` : 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" 
+                :src="userInfo.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" 
               />
               <span style="margin-left: 10px; font-weight: bold; color: #606266;">
                 {{ userInfo.nickname || userInfo.username }}

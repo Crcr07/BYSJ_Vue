@@ -16,7 +16,7 @@
           <div class="score-box">
             <span class="score-label">智能匹配度：</span>
             <el-progress 
-              :percentage="parseFloat((record.matchScore * 100).toFixed(2))" 
+              :percentage="parseFloat((record.matchScore).toFixed(2))" 
               :color="customColors" 
               :stroke-width="12" 
               style="width: 200px;" 
@@ -61,10 +61,10 @@
             <div class="item-content">
               <el-image 
                 v-if="record.lostItem.imageUrl" 
-                :src="`/api/images/${record.lostItem.imageUrl}`" 
+                :src="record.lostItem.imageUrl" 
                 fit="contain" 
                 class="compare-img"
-                :preview-src-list="[`/api/images/${record.lostItem.imageUrl}`]"
+                :preview-src-list="[record.lostItem.imageUrl]"
                 preview-teleported
               />
               <div class="info-text">
@@ -88,10 +88,10 @@
             <div class="item-content">
               <el-image 
                 v-if="record.foundItem.imageUrl" 
-                :src="`/api/images/${record.foundItem.imageUrl}`" 
+                :src="record.foundItem.imageUrl" 
                 fit="contain" 
                 class="compare-img"
-                :preview-src-list="[`/api/images/${record.foundItem.imageUrl}`]"
+                :preview-src-list="[record.foundItem.imageUrl]"
                 preview-teleported
               />
               <div class="info-text">
@@ -105,7 +105,32 @@
           
         </el-row>
 
-      </el-card>
+        <div class="ai-analysis-panel" v-if="record.matchReason">
+          <div class="panel-header">
+            <span class="panel-title">🤖 大模型智能分析报告</span>
+            <el-tag :type="getRiskType(record.riskLevel)" effect="light" size="small" class="risk-tag">
+              判定风险: {{ formatRiskLevel(record.riskLevel) }}
+            </el-tag>
+          </div>
+          <div class="panel-body">
+            <p class="ai-reason">"{{ record.matchReason }}"</p>
+            
+            <div class="matched-fields" v-if="parseFields(record.matchedFields).length > 0">
+              <span class="field-label">高度重合维度：</span>
+              <el-tag 
+                v-for="(field, index) in parseFields(record.matchedFields)" 
+                :key="index"
+                size="small"
+                effect="plain"
+                type="info"
+                class="field-tag"
+              >
+                {{ formatFieldName(field) }}
+              </el-tag>
+            </div>
+          </div>
+        </div>
+        </el-card>
     </div>
   </div>
 </template>
@@ -118,14 +143,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const loading = ref(false)
 const matchList = ref([])
 
-// 🌟 解析 Token 获取当前用户的真实 ID
+// 解析 Token 获取当前用户的真实 ID
 const getCurrentUserId = () => {
   const token = localStorage.getItem('token')
   if (!token) return null
   try {
-    // JWT 格式是三段式，中间那段是数据 payload。我们用 atob 解码 Base64
     const payload = JSON.parse(atob(token.split('.')[1]))
-    return payload.sub // 后端把 userId 存在了 subject (sub) 里
+    return payload.sub 
   } catch (e) {
     return null
   }
@@ -138,6 +162,45 @@ const customColors = [
   { color: '#e6a23c', percentage: 80 },
   { color: '#67c23a', percentage: 100 }
 ]
+
+// ================= 新增：AI 数据解析辅助函数 =================
+// 1. 安全解析大模型返回的 JSON 数组字符串 (例如 "[\"name\",\"location\"]")
+const parseFields = (fieldsStr) => {
+  if (!fieldsStr) return []
+  try {
+    const parsed = typeof fieldsStr === 'string' ? JSON.parse(fieldsStr) : fieldsStr
+    return Array.isArray(parsed) ? parsed : []
+  } catch (e) {
+    return []
+  }
+}
+
+// 2. 将英文的字段名映射为便于用户阅读的中文
+const fieldNameMap = {
+  'name': '物品名称',
+  'category': '物品类别',
+  'ocrText': '外观文字(OCR)',
+  'description': '特征描述',
+  'location': '出没地点',
+  'time': '时间轨迹',
+  'imageFeature': '图像深度特征'
+}
+const formatFieldName = (field) => {
+  return fieldNameMap[field] || field
+}
+
+// 3. 将英文风险等级转换为 Element 标签类型
+const getRiskType = (level) => {
+  const map = { 'low': 'success', 'medium': 'warning', 'high': 'danger' }
+  return map[level?.toLowerCase()] || 'info'
+}
+
+// 4. 将英文风险等级转换为中文展示
+const formatRiskLevel = (level) => {
+  const map = { 'low': '低 (高度疑似同一物品)', 'medium': '中 (存在部分差异)', 'high': '高 (大概率非同一物品)' }
+  return map[level?.toLowerCase()] || '未知'
+}
+// ==============================================================
 
 // 获取我的匹配记录
 const fetchMatchList = async () => {
@@ -164,17 +227,13 @@ const handleConfirm = (recordId) => {
     }
   ).then(async () => {
     try {
-      // 🌟 调用后端的确认认领接口
       await request.post(`/match/confirm/${recordId}`)
       ElMessage.success('🎉 恭喜！物品认领成功！')
-      // 刷新列表，更新状态
       fetchMatchList()
     } catch (error) {
       ElMessage.error('确认失败，请重试')
     }
-  }).catch(() => {
-    // 用户取消操作
-  })
+  }).catch(() => {})
 }
 
 onMounted(() => {
@@ -293,4 +352,70 @@ onMounted(() => {
   font-style: italic;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
+
+/* ================= 新增：AI 面板的专属样式 ================= */
+.ai-analysis-panel {
+  margin-top: 20px;
+  /* 使用极光渐变背景色，突出 AI 的科技感 */
+  background: linear-gradient(145deg, #f5f7fa, #f0f4ff);
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  padding: 16px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 左侧彩色装饰条 */
+.ai-analysis-panel::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, #409eff, #8a2be2);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.panel-title {
+  font-weight: bold;
+  color: #303133;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+
+.ai-reason {
+  color: #4c4d4f;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+  text-align: justify;
+  font-style: italic;
+}
+
+.matched-fields {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px dashed #dcdfe6;
+  padding-top: 12px;
+}
+
+.field-label {
+  font-size: 13px;
+  color: #909399;
+}
+
+.field-tag {
+  border-radius: 12px; /* 圆角标签更显现代 */
+  padding: 0 10px;
+}
+/* ========================================================= */
 </style>

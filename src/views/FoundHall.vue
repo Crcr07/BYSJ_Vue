@@ -23,13 +23,10 @@
         <el-card shadow="hover" class="item-card">
           
           <el-image 
-            v-if="item.imageUrl" 
-            :src="`/api/images/${item.imageUrl}`" 
-            fit="cover" 
-            style="width: 100%; height: 180px; display: block;"
-            :preview-src-list="[`/api/images/${item.imageUrl}`]"
-            preview-teleported
-          />
+  v-if="item.imageUrl" 
+  :src="item.imageUrl" 
+  :preview-src-list="[item.imageUrl]"
+/>
           <div v-else class="image-placeholder">
             <el-icon :size="40" color="#909399"><Picture /></el-icon>
             <span style="font-size: 12px; color: #909399; margin-top: 8px;">暂无图片</span>

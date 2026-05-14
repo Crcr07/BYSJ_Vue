@@ -24,13 +24,13 @@
       <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in lostList" :key="item.id" style="margin-bottom: 20px;">
         <el-card shadow="hover" class="item-card">
           <el-image 
-            v-if="item.imageUrl" 
-            :src="`/api/images/${item.imageUrl}`" 
-            fit="cover" 
-            style="width: 100%; height: 180px; display: block;"
-            :preview-src-list="[`/api/images/${item.imageUrl}`]"
-            preview-teleported
-          />
+  v-if="item.imageUrl" 
+  :src="item.imageUrl" 
+  fit="cover" 
+  style="width: 100%; height: 180px; display: block;"
+  :preview-src-list="[item.imageUrl]"
+  preview-teleported
+/>
           
           <div v-else class="image-placeholder">
             <el-icon :size="40" color="#909399"><Picture /></el-icon>
