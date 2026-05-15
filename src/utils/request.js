@@ -3,7 +3,7 @@ import axios from 'axios'
 // 创建一个 axios 实例
 const request = axios.create({
   baseURL: '/api', // 对应刚刚 vite.config.js 里的代理拦截规则
-  timeout: 10000   // 请求超时时间 10 秒
+  timeout: 30000   // 请求超时时间 10 秒
 })
 
 // ================= 请求拦截器 =================
