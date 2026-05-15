@@ -23,10 +23,14 @@
         <el-card shadow="hover" class="item-card">
           
           <el-image 
-  v-if="item.imageUrl" 
-  :src="item.imageUrl" 
-  :preview-src-list="[item.imageUrl]"
-/>
+            v-if="item.imageUrl" 
+            :src="item.imageUrl" 
+            fit="cover" 
+            style="width: 100%; height: 180px; display: block;"
+            :preview-src-list="[item.imageUrl]"
+            preview-teleported
+          />
+          
           <div v-else class="image-placeholder">
             <el-icon :size="40" color="#909399"><Picture /></el-icon>
             <span style="font-size: 12px; color: #909399; margin-top: 8px;">暂无图片</span>
@@ -37,6 +41,10 @@
             <p class="info-row"><el-icon><Location /></el-icon> 拾取地点：{{ item.foundLocation }}</p>
             <p class="info-row"><el-icon><Clock /></el-icon> 拾取时间：{{ item.foundTime }}</p>
             <p class="item-desc" :title="item.description">{{ item.description || '好心人没有留下详细描述...' }}</p>
+
+            <el-button type="primary" plain size="small" style="width: 100%; margin-top: 10px;" @click="openMatchDialog(item)">
+              <el-icon><Connection /></el-icon> 用我的失物去匹配
+            </el-button>
           </div>
         </el-card>
       </el-col>
@@ -54,6 +62,31 @@
         @current-change="handleCurrentChange"
       />
     </div>
+
+    <el-dialog v-model="dialogVisible" title="🤖 选择您丢失的物品进行 AI 匹配" width="600px">
+      <div v-loading="matching">
+        <p style="color: #606266; margin-bottom: 15px; font-size: 14px;">
+          您正在尝试与招领物品 <strong style="color: #67c23a;">{{ currentTargetItem?.itemName }}</strong> 进行精准匹配比对：
+        </p>
+
+        <el-empty v-if="myLostItems.length === 0" description="您还没有发布过任何失物信息哦">
+          <el-button type="primary" @click="$router.push('/publish')">去发布失物</el-button>
+        </el-empty>
+
+        <el-table v-else :data="myLostItems" border stripe style="width: 100%">
+          <el-table-column prop="itemName" label="物品名称" width="150" />
+          <el-table-column prop="lostLocation" label="丢失地点" />
+          <el-table-column label="操作" width="120" align="center">
+            <template #default="scope">
+              <el-button type="success" size="small" @click="doManualMatch(scope.row.id)">
+                开始匹配
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -61,21 +94,67 @@
 import { ref, onMounted } from 'vue'
 import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
+import { Search, Picture, Location, Clock, Connection } from '@element-plus/icons-vue'
 
+// ================= 大厅列表状态 =================
 const loading = ref(false)
 const foundList = ref([])
 const total = ref(0)
-const queryParams = ref({ current: 1, size: 8, keyword: '' })
+const queryParams = ref({
+  current: 1,
+  size: 8,
+  keyword: ''
+})
 
+// ================= 🌟 1v1 手动匹配状态 =================
+const dialogVisible = ref(false)
+const matching = ref(false) 
+const currentTargetItem = ref(null) 
+const myLostItems = ref([]) 
+
+// 打开匹配弹窗，并拉取“我发布的失物”
+const openMatchDialog = async (item) => {
+  currentTargetItem.value = item
+  dialogVisible.value = true
+  
+  try {
+    const res = await request.get('/item/lost/my')
+    myLostItems.value = res || []
+  } catch (error) {
+    ElMessage.error('获取我的失物列表失败')
+  }
+}
+
+// 执行大模型匹配接口
+const doManualMatch = async (myLostId) => {
+  const foundId = currentTargetItem.value.id
+  
+  matching.value = true
+  ElMessage.info({ message: '大模型正在进行多模态特征比对，请耐心等待...', duration: 0 })
+
+  try {
+    const res = await request.post(`/match/manual?lostId=${myLostId}&foundId=${foundId}`)
+    ElMessage.closeAll()
+    ElMessage.success({ message: res, duration: 5000 })
+    dialogVisible.value = false 
+  } catch (error) {
+    ElMessage.closeAll()
+    ElMessage.warning({ message: error || '匹配度较低，AI判定非同一物品', duration: 4000 })
+  } finally {
+    matching.value = false
+  }
+}
+// =======================================================
+
+// 获取列表数据的方法
 const fetchFoundList = async () => {
   loading.value = true
   try {
-    // 🌟 请求变成了招领列表接口
     const res = await request.get('/item/found/list', { params: queryParams.value })
     foundList.value = res.records
     total.value = res.total
   } catch (error) {
-    ElMessage.error('获取招领列表失败')
+    ElMessage.error('获取招领列表失败，请检查网络')
   } finally {
     loading.value = false
   }
@@ -89,7 +168,6 @@ onMounted(() => { fetchFoundList() })
 </script>
 
 <style scoped>
-/* 样式和 LostHall 一模一样 */
 .lost-hall-container { padding: 30px; max-width: 1200px; margin: 0 auto; }
 .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #ebeef5; padding-bottom: 15px; }
 .header-section h2 { color: #303133; margin: 0; }

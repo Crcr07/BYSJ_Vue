@@ -30,18 +30,18 @@
               </template>
             </el-table-column>
             <el-table-column label="图片" width="80" align="center">
-  <template #default="{ row }">
-    <el-image 
-      v-if="row.imageUrl" 
-      :src="`/api/images/${row.imageUrl}`" 
-      fit="cover" 
-      style="width: 50px; height: 50px; border-radius: 4px;"
-      :preview-src-list="[`/api/images/${row.imageUrl}`]"
-      preview-teleported
-    />
-    <el-tag v-else size="small" type="info">无图</el-tag>
-  </template>
-</el-table-column>
+              <template #default="{ row }">
+                <el-image 
+                  v-if="row.imageUrl" 
+                  :src="row.imageUrl" 
+                  fit="cover" 
+                  style="width: 50px; height: 50px; border-radius: 4px;"
+                  :preview-src-list="[row.imageUrl]"
+                  preview-teleported
+                />
+                <el-tag v-else size="small" type="info">无图</el-tag>
+              </template>
+            </el-table-column>
             <el-table-column label="操作" fixed="right" min-width="200">
               <template #default="{ row }">
                 <el-button size="small" type="primary" plain @click="viewDetail(row, 'lost')">详情</el-button>
@@ -53,6 +53,7 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
+
         <el-tab-pane label="招领列表" name="found">
           <el-table :data="foundList" v-loading="loading" stripe border style="width: 100%">
             <el-table-column prop="id" label="ID" width="80" />
@@ -66,18 +67,18 @@
               </template>
             </el-table-column>
             <el-table-column label="图片" width="80" align="center">
-    <template #default="{ row }">
-      <el-image 
-        v-if="row.imageUrl" 
-        :src="`/api/images/${row.imageUrl}`" 
-        fit="cover" 
-        style="width: 50px; height: 50px; border-radius: 4px;"
-        :preview-src-list="[`/api/images/${row.imageUrl}`]"
-        preview-teleported
-      />
-      <el-tag v-else size="small" type="info">无图</el-tag>
-    </template>
-  </el-table-column>
+              <template #default="{ row }">
+                <el-image 
+                  v-if="row.imageUrl" 
+                  :src="row.imageUrl" 
+                  fit="cover" 
+                  style="width: 50px; height: 50px; border-radius: 4px;"
+                  :preview-src-list="[row.imageUrl]"
+                  preview-teleported
+                />
+                <el-tag v-else size="small" type="info">无图</el-tag>
+              </template>
+            </el-table-column>
             <el-table-column label="操作" fixed="right" min-width="200">
               <template #default="{ row }">
                 <el-button size="small" type="primary" plain @click="viewDetail(row, 'found')">详情</el-button>
@@ -105,7 +106,6 @@
       </div>
     </el-card>
 
-    <!-- 物品详情对话框 -->
     <el-dialog v-model="detailVisible" :title="detailType === 'lost' ? '失物详情' : '招领详情'" width="500px">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="ID">{{ currentItem.id }}</el-descriptions-item>
@@ -121,8 +121,15 @@
         <el-descriptions-item label="状态">{{ currentItem.status === 0 ? '未解决' : '已解决' }}</el-descriptions-item>
         <el-descriptions-item label="发布时间">{{ currentItem.createTime }}</el-descriptions-item>
         <el-descriptions-item label="图片">
-          <el-image v-if="currentItem.imageUrl" :src="`/api/images/${currentItem.imageUrl}`" fit="contain" style="width: 100px; height: 100px;" />
-          <span v-else>无</span>
+          <el-image 
+            v-if="currentItem.imageUrl" 
+            :src="currentItem.imageUrl" 
+            :preview-src-list="[currentItem.imageUrl]"
+            fit="contain" 
+            style="width: 200px; height: 200px; border-radius: 8px;" 
+            preview-teleported
+          />
+          <span v-else style="color: #909399;">无</span>
         </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
@@ -133,6 +140,7 @@
 import { ref, onMounted } from 'vue'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const activeTab = ref('lost')
